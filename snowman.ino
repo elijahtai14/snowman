@@ -12,22 +12,25 @@ Button upButton(PB1);
 Button downButton(PB3);
 Buzzer buzzer(PB4);
 
-uint8_t empty[8] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0,    0x0};
-uint8_t bell[8]  = {0x4, 0xe, 0xe, 0xe, 0x1f, 0x0,   0x4};
-uint8_t note[8]  = {0x2, 0x3, 0x2, 0xe, 0x1e, 0xc,   0x0};
-uint8_t clock[8] = {0x0, 0xe, 0x15, 0x17, 0x11, 0xe, 0x0};
-uint8_t heart[8] = {0x0, 0xa, 0x1f, 0x1f, 0xe, 0x4,  0x0};
-uint8_t duck[8]  = {0x0, 0xc, 0x1d, 0xf, 0xf, 0x6,   0x0};
-uint8_t check[8] = {0x0, 0x1 ,0x3, 0x16, 0x1c, 0x8,  0x0};
-uint8_t cross[8] = {0x0, 0x1b, 0xe, 0x4, 0xe, 0x1b,  0x0};
-uint8_t retarrow[8] = {0x1, 0x1, 0x5, 0x9, 0x1f, 0x8,0x4};
-uint8_t uparrow[8] = {0x00, 0x00, 0x04, 0x0E, 0x1F, 0x00, 0x00, 0x00};
+const uint8_t EMPTY_CHAR = ' ';
+const uint8_t BOX_CHAR = B11011011;
+const uint8_t A_CHAR = B01000001;
+const uint8_t B_CHAR = B01000010;
+const uint8_t UP_CHAR = B01011110;
+const uint8_t DOWN_CHAR = B01110110;
+const uint8_t LEFT_CHAR = B00111100;
+const uint8_t RIGHT_CHAR = B00111110;
+
+
+void createChars(){
+      //uint8_t underArrowChar[] = {B10101, B01010, B10101, B01010, B10101, B01010, B10101, B01010}; screen -> createChar(UNDER_ARROW_CHAR, underArrowChar);
+}
 
 void drawScreenCustom(uint8_t screenCustom[]) {
   screen -> clear();
   for (uint8_t col = 0; col < 16; col++) {
     for (uint8_t row = 0; row < 2; row++) {
-      if (screenCustom[col + row * 16] != 0) {
+      if (screenCustom[col + row * 16] != EMPTY_CHAR) {
         screen -> setCursor(col, row);
         screen -> write(screenCustom[col + row * 16]);
       }
@@ -37,19 +40,38 @@ void drawScreenCustom(uint8_t screenCustom[]) {
 
 void initPage(String page) {
   screen -> clear();
-  if (page == String("home")) {
-    
-    uint8_t homeScreenCustom[32] = {0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8,
-                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    drawScreenCustom(homeScreenCustom);
-    state -> x = 1;
-    state -> y = 1;
-    screen -> setCursor(1, 1);
-    screen -> write(9);
-    return;
+  // Initial Screen Init
+  if (page == String("initial")) {
+    screen -> setCursor(0, 0);
+    screen -> print("Merry Christmas,");
+    screen -> setCursor(0, 1);
+    screen -> print("Alberto!");
   }
 
-  if (page == String("duck")) {
+  // Code Screen Init
+  else if (page == String("code")) {
+    uint8_t codeScreen[] = {EMPTY_CHAR, LEFT_CHAR, EMPTY_CHAR, UP_CHAR, 
+                            EMPTY_CHAR, DOWN_CHAR, EMPTY_CHAR, RIGHT_CHAR, 
+                            EMPTY_CHAR, 'A', EMPTY_CHAR, 'B', 
+                            EMPTY_CHAR, 'S', EMPTY_CHAR, EMPTY_CHAR,
+                            0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
+    state -> x = 1; // will store the cursor column
+    state -> y = 0; // will store the current stage we are on.
+    drawScreenCustom(codeScreen);
+  }
+
+  // Home Screen Init
+  else if (page == String("home")) {
+    uint8_t homeScreen[] = {EMPTY_CHAR, EMPTY_CHAR, LEFT_CHAR, EMPTY_CHAR, 
+                                  EMPTY_CHAR, EMPTY_CHAR, UP_CHAR, EMPTY_CHAR, 
+                                  EMPTY_CHAR, EMPTY_CHAR, DOWN_CHAR, EMPTY_CHAR, 
+                                  EMPTY_CHAR, EMPTY_CHAR, RIGHT_CHAR, EMPTY_CHAR,
+                                  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
+    drawScreenCustom(homeScreen);
+  }
+
+  // Duck Screen Init
+  else if (page == String("duck")) {
     screen -> print("duck");
     return;
   }
@@ -61,21 +83,60 @@ void navigateTo (String page) {
 }
 
 void doPage(String page) {
+  // initial_page 
+  if (page == String("initial")) {
+    if (downButton.isPressed() || upButton.isPressed()) {
+      buzzer.playBlockingNote(880, 500, 500);
+      navigateTo(String("code"));
+    }
+  }
+
+  else if (page == String("code")) {
+    if (upButton.isPressed()) {
+      screen -> setCursor(state -> x, 1); screen -> write(EMPTY_CHAR);
+      state -> x = (state -> x + 2) % 14;
+      screen -> setCursor(state -> x, 1); screen -> write(BOX_CHAR);
+    }
+    if (downButton.isPressed()) {
+      const uint8_t up_col = 3; 
+      const uint8_t down_col = 5; 
+      const uint8_t left_col = 1; 
+      const uint8_t right_col = 7;
+      const uint8_t b_col = 11; 
+      const uint8_t a_col = 9;
+      const uint8_t s_col = 13;
+      if (state -> y == 0 && state -> x == 3) {state -> y++;}
+      else if (state -> y == 1 && state -> x == 3) {state -> y++;}
+      else if (state -> y == 2 && state -> x == 5) {state -> y++;}
+      else if (state -> y == 3 && state -> x == 5) {state -> y++;}
+      else if (state -> y == 4 && state -> x == 1) {state -> y++;}
+      else if (state -> y == 5 && state -> x == 7) {state -> y++;}
+      else if (state -> y == 6 && state -> x == 1) {state -> y++;}
+      else if (state -> y == 7 && state -> x == 7) {state -> y++;}
+      else if (state -> y == 8 && state -> x == 11) {state -> y++;}
+      else if (state -> y == 9 && state -> x == 9) {state -> y++;}
+      else if (state -> y == 10 && state -> x == 13) {navigateTo(String("home"));}
+      else {navigateTo(String("initial"));}
+    }
+  }
+
   // homepage
   if (page == String("home")) {
-    if (upButton.isPressed()) {
-      screen -> setCursor(state -> x, state -> y);
-      screen -> print(" ");
-      state -> x = (state -> x + 2) % 16;
-      screen -> setCursor(state -> x, state -> y);
-      screen -> write(9);
-    }
+    screen -> setCursor(0, 0);
+    screen -> print("home");
+    // if (upButton.isPressed()) {
+    //   screen -> setCursor(state -> x, state -> y);
+    //   screen -> print(" ");
+    //   state -> x = (state -> x + 2) % 16;
+    //   screen -> setCursor(state -> x, state -> y);
+    //   screen -> write(9);
+    // }
 
-    if (downButton.isPressed()) {
-      if (state -> x == 1) {
-        navigateTo(String("duck"));
-      }
-    }
+    // if (downButton.isPressed()) {
+    //   if (state -> x == 1) {
+    //     navigateTo(String("duck"));
+    //   }
+    // }
     return;
   }
 
@@ -91,18 +152,8 @@ void doPage(String page) {
 void setup() {
   screen -> init(); screen -> init();
   screen -> backlight();
-    
-  screen -> createChar(1, note);
-  screen -> createChar(2, clock);
-  screen -> createChar(3, heart);
-  screen -> createChar(4, duck);
-  screen -> createChar(5, check);
-  screen -> createChar(6, cross);
-  screen -> createChar(7, retarrow);
-  screen -> createChar(8, bell);
-  screen -> createChar(9, uparrow);
-
-  navigateTo(String("home"));
+  createChars();
+  navigateTo(String("initial"));
 }
 
 void loop() {
